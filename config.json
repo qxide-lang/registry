@@ -1,0 +1,4 @@
+{
+  "dl": "packages/{prefix}/{name}/{name}-{version}.tar.gz",
+  "api": null
+}

@@ -1,0 +1,34 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # A pull request must not be judged by a checker it can edit: run the target branch's copy
+      # (the pull request's own copy only while the target branch has none yet).
+      - if: github.event_name == 'pull_request'
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: |
+          if git cat-file -e "$BASE:scripts/validate.py" 2>/dev/null; then
+            git show "$BASE:scripts/validate.py" > "$RUNNER_TEMP/validate.py"
+          else
+            cp scripts/validate.py "$RUNNER_TEMP/validate.py"
+          fi
+          python "$RUNNER_TEMP/validate.py" --root . --base "$BASE" --summary "$GITHUB_STEP_SUMMARY"
+      - if: github.event_name != 'pull_request'
+        run: python scripts/validate.py --summary "$GITHUB_STEP_SUMMARY"

@@ -10,16 +10,26 @@ import json
 import re
 from pathlib import Path
 
-SEMVER = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?")
+SEMVER = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z.-]+))?")
 
 
 def key(vers: str):
-    m = SEMVER.match(vers)
+    """Sort key for semver precedence (ignoring build metadata), or `None` if the version does not
+    parse.
+    """
+    m = SEMVER.fullmatch(vers.split("+", 1)[0]) if isinstance(vers, str) else None
     if not m:
-        return (0, 0, 0, 0, "")
+        return None
     major, minor, patch, pre = m.groups()
-    # A release sorts after its pre-releases.
-    return (int(major), int(minor), int(patch), 0 if pre else 1, pre or "")
+    if pre is None:
+        # A release sorts after all of its pre-releases.
+        return (int(major), int(minor), int(patch), 1, ())
+    # Numeric pre-release identifiers compare numerically and sort before alphanumeric ones; with an
+    # equal prefix, the longer identifier list is newer (1.0.0-rc.2 < 1.0.0-rc.10 < 1.0.0-rc.10.1).
+    # validate.py rejects leading zeros, so length then digits is numeric order, without `int()`,
+    # which refuses more than 4300 digits.
+    ids = tuple((0, len(p), p) if p.isdigit() else (1, 0, p) for p in pre.split("."))
+    return (int(major), int(minor), int(patch), 0, ids)
 
 
 def main() -> None:
@@ -28,8 +38,10 @@ def main() -> None:
     root = Path(parser.parse_args().root)
     packages = []
     for path in sorted(p for p in (root / "index").rglob("*") if p.is_file() and p.name != ".gitkeep"):
-        entries = [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
-        live = [e for e in entries if not e.get("yanked")]
+        # Split on `\n` only, like the client (not on `\r`, `\f` or other line breaks).
+        text = path.read_bytes().decode("utf-8")
+        entries = [json.loads(l) for l in text.split("\n") if l.strip()]
+        live = [e for e in entries if not e.get("yanked") and key(e.get("vers")) is not None]
         if not live:
             continue
         best = max(live, key=lambda e: key(e["vers"]))

@@ -1,4 +1,10 @@
 {
   "version": 1,
-  "packages": []
+  "packages": [
+    {
+      "name": "bell-utils",
+      "version": "0.1.0",
+      "description": "Bell-pair helpers for Qxide"
+    }
+  ]
 }

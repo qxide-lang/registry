@@ -1,0 +1,4 @@
+# Changes to CI, validation scripts and registry config need a maintainer review.
+/.github/    @rigelx2b
+/scripts/    @rigelx2b
+/config.json @rigelx2b

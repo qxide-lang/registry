@@ -113,7 +113,7 @@ Example line:
 | `deps` | Yes | List of dependency objects `{name, req}`. |
 | `cksum` | Yes | Hex-encoded sha256 checksum of the archive. |
 | `qxide` | No | Qxide language version requirement. |
-| `description` | No | Short package description, without control characters. |
+| `description` | No | Short package description, without control characters or bidirectional formatting characters. |
 | `dl` | No | Download URL override. The archive must still be added to this repository at its default path, where CI checks it. |
 | `yanked` | Yes | Boolean indicating whether the version is yanked. |
 | `v` | Yes | Schema version (`1`). |
@@ -139,7 +139,7 @@ Every pull request runs `scripts/validate.py` from the target branch (the workfl
 - Existing published index lines are unchanged, except that an owner may change `yanked` from false to true
 - No published version or index file is removed
 - Every changed path can be checked out on Windows
-- `description` contains no control characters
+- `description` contains no control characters or bidirectional formatting characters
 - No existing archive is modified or deleted
 - `search.json` is untouched
 - `config.json` is untouched

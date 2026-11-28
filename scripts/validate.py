@@ -31,6 +31,8 @@ MAX_COMPARATORS = 32
 DL_URL = re.compile(r"https://[A-Za-z0-9.-]+(?::[0-9]{1,5})?(?:/[A-Za-z0-9._~%+!$&'()*,;=:@/-]*)?")
 DL_SEGMENT = re.compile(r"[A-Za-z0-9._+-]+")
 REQUIRED = {"name", "vers", "deps", "cksum", "yanked", "v"}
+# Marks, embeddings, overrides, and isolates (as `hidden` in src/lang/diag.rs).
+BIDI_FORMATTING = set("\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069")
 KNOWN = REQUIRED | {"qxide", "description", "dl"}
 DEFAULT_DL = "packages/{prefix}/{name}/{name}-{version}.tar.gz"
 # Archive limits, the same as the client's in src/pkg/archive.rs.
@@ -434,8 +436,11 @@ def check_entry(where: str, entry: dict, file_name: str) -> bool:
         if key in entry and not isinstance(entry[key], str):
             error(where, INVALID_VALUE.format(key=key, value=repr(entry[key])))
             ok = False
-    # `qxide search` prints descriptions to terminals: no C0, DEL or C1 controls (escape sequences).
-    if isinstance(entry.get("description"), str) and any(unicodedata.category(c) == "Cc" for c in entry["description"]):
+    # `qxide search` prints descriptions to terminals: no C0, DEL or C1 controls (escape sequences)
+    # and no bidirectional formatting characters, which reorder the text shown.
+    if isinstance(entry.get("description"), str) and any(
+        unicodedata.category(c) == "Cc" or c in BIDI_FORMATTING for c in entry["description"]
+    ):
         error(where, "`description` contains control characters")
         ok = False
     if not isinstance(entry["deps"], list):
